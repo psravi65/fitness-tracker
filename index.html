@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Fitness Plans</title>
+<style>
+  :root{
+    --bg:#08111f;
+    --card:#13233b;
+    --line:#243856;
+    --text:#eef4ff;
+    --muted:#8ea2c7;
+    --orange:#ff9350;
+    --teal:#37d6c7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    min-height:100vh;
+    font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(circle at top left, rgba(255,147,80,.18), transparent 28%),
+      radial-gradient(circle at top right, rgba(55,214,199,.16), transparent 26%),
+      linear-gradient(180deg,#08111f 0%,#0c1526 100%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .shell{
+    width:min(720px,100%);
+  }
+  .hero{
+    margin-bottom:18px;
+  }
+  .eyebrow{
+    display:inline-block;
+    padding:6px 10px;
+    border:1px solid rgba(255,147,80,.35);
+    border-radius:999px;
+    color:var(--orange);
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    background:rgba(255,147,80,.08);
+  }
+  h1{
+    font-size:40px;
+    line-height:1.05;
+    margin-top:14px;
+  }
+  p{
+    color:var(--muted);
+    font-size:16px;
+    margin-top:10px;
+    max-width:560px;
+    line-height:1.6;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:16px;
+    margin-top:24px;
+  }
+  .card{
+    background:linear-gradient(180deg, rgba(19,35,59,.96), rgba(12,21,38,.96));
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding:20px;
+    box-shadow:0 22px 48px rgba(0,0,0,.25);
+  }
+  .tag{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--teal);
+    margin-bottom:12px;
+  }
+  .name{
+    font-size:28px;
+    font-weight:900;
+  }
+  .meta{
+    color:var(--muted);
+    font-size:14px;
+    margin-top:8px;
+    line-height:1.6;
+  }
+  .btn{
+    display:inline-block;
+    margin-top:18px;
+    padding:12px 16px;
+    border-radius:14px;
+    font-weight:800;
+    text-decoration:none;
+    color:#09101d;
+    background:linear-gradient(90deg,var(--orange),#ffb06c);
+  }
+  .btn.alt{
+    background:linear-gradient(90deg,var(--teal),#83efe5);
+  }
+</style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="eyebrow">Client Plan Hub</div>
+      <h1>Fitness plan apps for daily tracking and Google Sheets sync.</h1>
+      <p>Use the links below to open each client’s web app. Both plans are mobile-friendly and save progress locally while syncing summaries to Google Sheets.</p>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <div class="tag">Athletic Fat Loss</div>
+        <div class="name">Ananthakrishnan M</div>
+        <div class="meta">Strength and conditioning focused cut with South Indian meal tracking, weekly review cards, and daily auto-sync support.</div>
+        <a class="btn" href="./AnanthPlan.html">Open Ananth Plan</a>
+      </article>
+
+      <article class="card">
+        <div class="tag">Body Recomposition</div>
+        <div class="name">Veena S Ravi</div>
+        <div class="meta">Kerala-style recomposition plan with shoulder rehab emphasis, nightly training structure, and daily progress logging.</div>
+        <a class="btn alt" href="./VeenaPlan.html">Open Veena Plan</a>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

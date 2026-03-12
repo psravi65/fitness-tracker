@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="theme-color" content="#0b1220"/>
+<title>Veena Recomposition Plan</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  :root{
+    --bg:#0b1220;
+    --bg-soft:#111a2d;
+    --card:#162238;
+    --line:#23324e;
+    --text:#ecf2ff;
+    --muted:#8da0c4;
+    --orange:#ff8a3d;
+    --teal:#2ed3c6;
+    --lime:#9be15d;
+    --gold:#ffd166;
+    --red:#ff6b6b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{
+    background:
+      radial-gradient(circle at top right, rgba(46,211,198,.18), transparent 28%),
+      radial-gradient(circle at top left, rgba(255,138,61,.18), transparent 24%),
+      linear-gradient(180deg,#09101d 0%,#0b1220 100%);
+    color:var(--text);
+    font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;
+    min-height:100vh;
+  }
+  button,input{font:inherit;}
+  #root{max-width:480px;margin:0 auto;min-height:100vh;}
+  ::-webkit-scrollbar{width:6px;}
+  ::-webkit-scrollbar-thumb{background:#2a3958;border-radius:6px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useEffect, useMemo, useRef, useState} = React;
+
+const S = {
+  get(key, fallback){
+    try{
+      const value = localStorage.getItem(key);
+      return value ? JSON.parse(value) : fallback;
+    }catch{
+      return fallback;
+    }
+  },
+  set(key, value){
+    try{ localStorage.setItem(key, JSON.stringify(value)); }catch{}
+  }
+};
+
+const SHEET_WEBHOOK = "https://script.google.com/macros/s/AKfycbxPm-pwgN98gLCD5NqoDup0gXYPWYPsumg9jdlBeHwKQM6iNfXaYxf0xnJqvwYYMq1fww/exec";
+
+async function postToSheet(payload, options = {}){
+  if(!SHEET_WEBHOOK) return;
+  try{
+    if(options.useBeacon && typeof navigator !== "undefined" && navigator.sendBeacon){
+      const blob = new Blob([JSON.stringify(payload)], {type:"text/plain;charset=utf-8"});
+      return navigator.sendBeacon(SHEET_WEBHOOK, blob);
+    }
+    const response = await fetch(SHEET_WEBHOOK, {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      keepalive: !!options.keepalive,
+      body: JSON.stringify(payload)
+    });
+    return response.ok;
+  }catch(err){
+    console.error("Sheet sync failed", err);
+    return false;
+  }
+}
+
+const PROFILE = {
+  name: "Veena S Ravi",
+  age: 38,
+  height: 165,
+  weight: 85,
+  bodyFat: 45,
+  targetBodyFat: 32,
+  targetWeight: "69-72 kg",
+  fatLoss: "13-16 kg",
+  rate: "0.5-0.7 kg/week",
+  timeline: "3+ months",
+  gym: "Commercial gym, 45-60 min night sessions",
+  goal: "Body recomposition - lose fat and build muscle",
+  cuisine: "Kerala style non-vegetarian",
+  mealsPerDay: 3,
+  cardio: "Walking, bike, Stairmaster, treadmill"
+};
+
+const TARGETS = {
+  calories: 1550,
+  protein: 120,
+  carbs: 150,
+  fat: 48,
+  water: 3,
+  steps: 8000
+};
+
+const MEAL_OPTIONS = {
+  breakfast: [
+    {name:"3 egg omelette + 2 dosa + sambar", protein:27, calories:430},
+    {name:"Greek yogurt bowl with chia seeds, banana, and almonds", protein:24, calories:390},
+    {name:"Oats omelette with eggs", protein:26, calories:360},
+    {name:"Egg bhurji + 2 chapathi", protein:24, calories:410},
+    {name:"Protein smoothie with whey, milk, oats, peanut butter, and banana", protein:32, calories:450}
+  ],
+  lunch: [
+    {name:"1 cup matta rice + fish curry + thoran", protein:32, calories:470},
+    {name:"1 cup matta rice + chicken curry + beans thoran", protein:34, calories:490},
+    {name:"1 cup matta rice + egg roast + cabbage thoran", protein:26, calories:450},
+    {name:"1 cup matta rice + grilled fish + avial", protein:34, calories:480},
+    {name:"1 cup matta rice + beef roast + vegetable stir fry", protein:35, calories:520}
+  ],
+  dinner: [
+    {name:"2 chapathi + chicken curry", protein:32, calories:420},
+    {name:"Grilled fish + vegetable salad", protein:30, calories:350},
+    {name:"Egg curry + 1 chapathi", protein:24, calories:330},
+    {name:"Chicken salad bowl", protein:32, calories:340},
+    {name:"Paneer stir fry", protein:24, calories:360}
+  ]
+};
+
+const WEEKLY_MEALS = [
+  {day:"Mon", breakfast:"Egg omelette + dosa", lunch:"Fish curry + thoran", dinner:"Chicken curry + chapathi"},
+  {day:"Tue", breakfast:"Greek yogurt bowl", lunch:"Chicken curry + beans", dinner:"Grilled fish + salad"},
+  {day:"Wed", breakfast:"Oats omelette", lunch:"Egg roast + cabbage", dinner:"Egg curry + chapathi"},
+  {day:"Thu", breakfast:"Egg bhurji + chapathi", lunch:"Grilled fish + avial", dinner:"Chicken salad bowl"},
+  {day:"Fri", breakfast:"Protein smoothie", lunch:"Beef roast + vegetables", dinner:"Paneer stir fry"},
+  {day:"Sat", breakfast:"Egg omelette + dosa", lunch:"Fish curry + thoran", dinner:"Chicken curry + chapathi"},
+  {day:"Sun", breakfast:"Flexible meal", lunch:"Family Kerala lunch", dinner:"Light protein dinner"}
+];
+
+const SUPPLEMENTS = [
+  {name:"Thyronorm 75", dose:"Continue as prescribed", note:"Keep medication timing consistent with medical advice."},
+  {name:"Omega 3", dose:"Continue daily", note:"Already part of the current routine."},
+  {name:"Whey protein", dose:"Optional add-on", note:"Useful if protein intake is low on busy days."},
+  {name:"Vitamin D3", dose:"Optional add-on", note:"Helpful if levels are low or sun exposure is limited."},
+  {name:"Magnesium glycinate", dose:"Optional at night", note:"May support sleep quality and recovery."},
+  {name:"Creatine monohydrate", dose:"Optional 3-5 g daily", note:"Supports strength and muscle retention during fat loss."}
+];
+
+const TRAINING = [
+  {
+    day:"Day 1",
+    title:"Lower Body Strength",
+    color:"#ff8a3d",
+    focus:"Leg strength with joint-friendly volume",
+    exercises:[
+      "Goblet squats - 4 x 10",
+      "Leg press - 3 x 12",
+      "Romanian deadlift - 3 x 10",
+      "Walking lunges - 3 x 12",
+      "Leg curl - 3 x 12",
+      "Standing calf raise - 3 x 15",
+      "Finish: 10 min incline walk"
+    ]
+  },
+  {
+    day:"Day 2",
+    title:"Upper Push + Shoulder Rehab",
+    color:"#2ed3c6",
+    focus:"Push session with shoulder-friendly setup",
+    exercises:[
+      "Rehab: Band external rotations - 15 reps x 3 rounds",
+      "Rehab: Face pulls - 15 reps x 3 rounds",
+      "Rehab: Scapular pushups - 12 reps x 3 rounds",
+      "Rehab: Wall slides - 12 reps x 3 rounds",
+      "Machine chest press - 4 x 10",
+      "Incline dumbbell press - 3 x 12",
+      "Cable chest fly - 3 x 12",
+      "Dumbbell lateral raise - 3 x 15",
+      "Cable tricep pushdown - 3 x 12",
+      "Overhead rope extension - 3 x 12",
+      "Finish: 12 min bike"
+    ]
+  },
+  {
+    day:"Day 3",
+    title:"Glutes & Posterior Chain",
+    color:"#ffd166",
+    focus:"Glute growth and hamstring strength",
+    exercises:[
+      "Hip thrust - 4 x 10",
+      "Romanian deadlift - 3 x 10",
+      "Bulgarian split squat - 3 x 10 each",
+      "Glute kickbacks - 3 x 12",
+      "Back extension - 3 x 12",
+      "Finish: 10 min Stairmaster"
+    ]
+  },
+  {
+    day:"Day 4",
+    title:"Upper Pull + Shoulder Rehab",
+    color:"#9be15d",
+    focus:"Back and arms with shoulder support work",
+    exercises:[
+      "Rehab: Band external rotations - 15 reps x 3 rounds",
+      "Rehab: Face pulls - 15 reps x 3 rounds",
+      "Rehab: Scapular pushups - 12 reps x 3 rounds",
+      "Rehab: Wall slides - 12 reps x 3 rounds",
+      "Lat pulldown - 4 x 10",
+      "Seated cable row - 3 x 12",
+      "Chest supported row - 3 x 10",
+      "Face pull - 3 x 15",
+      "Hammer curl - 3 x 12",
+      "Cable curl - 3 x 12",
+      "Finish: 10 min rowing"
+    ]
+  },
+  {
+    day:"Day 5",
+    title:"Fat Loss Conditioning",
+    color:"#8aa4ff",
+    focus:"Circuits for calorie burn and work capacity",
+    exercises:[
+      "Step ups - 12",
+      "Kettlebell deadlift - 12",
+      "Battle ropes - 20 sec",
+      "Walking lunges - 12",
+      "Medicine ball slams - 10",
+      "4 rounds total",
+      "Finish: 15 min incline treadmill walk"
+    ]
+  }
+];
+
+const PROGRESS_GOALS = [
+  {phase:"Month 1", weight:"81-82 kg"},
+  {phase:"Month 2", weight:"78-79 kg"},
+  {phase:"Month 3", weight:"76-77 kg"},
+  {phase:"Longer target", weight:"69-72 kg (~32% body fat)"}
+];
+
+const SUCCESS_RULES = [
+  "Hit protein across all 3 meals",
+  "Do shoulder rehab before upper body sessions",
+  "Walk more between long sitting periods",
+  "Sleep toward 7 hours consistently",
+  "Track weight, waist, hips, and photos weekly"
+];
+
+const WEEKS_16 = Array.from({length:16}, (_, i) => ({
+  week: i + 1,
+  targetWeight: (85 - ((14 / 15) * i)).toFixed(1)
+}));
+
+function todayKey(){
+  return new Date().toISOString().split("T")[0];
+}
+
+function Card({children, style}){
+  return <div style={{
+    background:"linear-gradient(180deg, rgba(22,34,56,.96), rgba(14,22,38,.96))",
+    border:"1px solid var(--line)",
+    borderRadius:18,
+    padding:16,
+    boxShadow:"0 18px 50px rgba(0,0,0,.24)",
+    ...style
+  }}>{children}</div>;
+}
+
+function Badge({children, color="#ff8a3d"}){
+  return <span style={{
+    display:"inline-flex",
+    alignItems:"center",
+    gap:6,
+    padding:"5px 10px",
+    borderRadius:999,
+    border:"1px solid " + color + "44",
+    background:color + "14",
+    color,
+    fontSize:11,
+    letterSpacing:.6,
+    textTransform:"uppercase",
+    fontWeight:700
+  }}>{children}</span>;
+}
+
+function Ring({label, value, max, color, unit=""}){
+  const radius = 28;
+  const circumference = 2 * Math.PI * radius;
+  const pct = Math.max(0, Math.min(1, value / max));
+  const offset = circumference * (1 - pct);
+  return (
+    <div style={{display:"flex", flexDirection:"column", alignItems:"center", gap:4}}>
+      <div style={{position:"relative", width:76, height:76}}>
+        <svg width="76" height="76" style={{transform:"rotate(-90deg)"}}>
+          <circle cx="38" cy="38" r={radius} fill="none" stroke="#21314c" strokeWidth="10"/>
+          <circle
+            cx="38"
+            cy="38"
+            r={radius}
+            fill="none"
+            stroke={color}
+            strokeWidth="10"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+          />
+        </svg>
+        <div style={{position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center"}}>
+          <div style={{fontWeight:800, fontSize:16}}>{Math.round(value)}</div>
+          <div style={{fontSize:10, color:"var(--muted)"}}>{unit}</div>
+        </div>
+      </div>
+      <div style={{fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1}}>{label}</div>
+    </div>
+  );
+}
+
+function App(){
+  const [tab, setTab] = useState("dashboard");
+  const [currentDateKey, setCurrentDateKey] = useState(todayKey());
+  const [dayLog, setDayLog] = useState({});
+  const [checkins, setCheckins] = useState([]);
+  const [weekChecks, setWeekChecks] = useState({});
+  const [note, setNote] = useState("");
+  const [weightForm, setWeightForm] = useState({weight:"85", bodyFat:"45", waist:"", note:""});
+  const [syncState, setSyncState] = useState("idle");
+  const [syncMessage, setSyncMessage] = useState("");
+  const [lastSyncedPayload, setLastSyncedPayload] = useState("");
+  const dayLogRef = useRef({});
+  const noteRef = useRef("");
+  const keyRef = useRef(currentDateKey);
+  const lastSyncedPayloadRef = useRef("");
+
+  const key = currentDateKey;
+
+  const buildDailyPayload = (dateKey, logData, noteText) => ({
+    sheet: "Daily Logs",
+    mode: "upsert",
+    rowKey: dateKey,
+    date: dateKey,
+    name: PROFILE.name,
+    calories: logData.calories || "",
+    protein: logData.protein || "",
+    carbs: logData.carbs || "",
+    fat: logData.fat || "",
+    water: logData.water || "",
+    steps: logData.steps || "",
+    cycling: logData.cycling ? "Yes" : "No",
+    note: noteText || ""
+  });
+
+  const performDailySync = async (options = {}) => {
+    const payload = options.payload || buildDailyPayload(keyRef.current, dayLogRef.current, noteRef.current);
+    const payloadString = JSON.stringify(payload);
+    if(!options.force && payloadString === lastSyncedPayloadRef.current){
+      return true;
+    }
+    if(!options.silent){
+      setSyncState("syncing");
+      setSyncMessage("Syncing today's summary to Google Sheets...");
+    }
+    const ok = await postToSheet(payload, {
+      useBeacon: !!options.useBeacon,
+      keepalive: !!options.keepalive
+    });
+    if(ok){
+      lastSyncedPayloadRef.current = payloadString;
+      setLastSyncedPayload(payloadString);
+      S.set("veena_synced_" + payload.rowKey, payloadString);
+    }
+    if(!options.silent){
+      setSyncState(ok ? "success" : "error");
+      setSyncMessage(ok ? "Today's log synced." : "Sync failed. Local data is still safe.");
+    }
+    return ok;
+  };
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      const nextKey = todayKey();
+      if(nextKey !== keyRef.current){
+        const rolloverPayload = buildDailyPayload(keyRef.current, dayLogRef.current, noteRef.current);
+        void performDailySync({payload: rolloverPayload, silent:true, keepalive:true});
+        setCurrentDateKey(nextKey);
+      }
+    }, 60000);
+    const autoSyncId = setInterval(() => {
+      void performDailySync({silent:true});
+    }, 300000);
+    const handlePageHide = () => {
+      const payload = buildDailyPayload(keyRef.current, dayLogRef.current, noteRef.current);
+      void performDailySync({payload, silent:true, useBeacon:true, force:true});
+    };
+    const handleVisibilityChange = () => {
+      if(document.visibilityState === "hidden"){
+        handlePageHide();
+      }
+    };
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      clearInterval(intervalId);
+      clearInterval(autoSyncId);
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const loadedDayLog = S.get("veena_day_" + key, {
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      water: 0,
+      steps: 0,
+      cycling: false,
+      meals: {},
+      workouts: {},
+      supplements: {}
+    });
+    const loadedNote = S.get("veena_note_" + key, "");
+    const syncedPayload = S.get("veena_synced_" + key, "");
+    setDayLog(loadedDayLog);
+    setCheckins(S.get("veena_checkins", []));
+    setWeekChecks(S.get("veena_week_checks", {}));
+    setNote(loadedNote);
+    dayLogRef.current = loadedDayLog;
+    noteRef.current = loadedNote;
+    keyRef.current = key;
+    lastSyncedPayloadRef.current = syncedPayload || "";
+    setLastSyncedPayload(syncedPayload || "");
+    setSyncState("idle");
+    setSyncMessage("");
+  }, [key]);
+
+  useEffect(() => {
+    dayLogRef.current = dayLog;
+  }, [dayLog]);
+
+  useEffect(() => {
+    noteRef.current = note;
+  }, [note]);
+
+  useEffect(() => {
+    keyRef.current = key;
+  }, [key]);
+
+  const saveDayLog = (next) => {
+    setDayLog(next);
+    S.set("veena_day_" + key, next);
+  };
+
+  const saveNote = (value) => {
+    setNote(value);
+    S.set("veena_note_" + key, value);
+  };
+
+  const syncDailyLog = async () => {
+    await performDailySync();
+  };
+
+  const latestCheckin = checkins[0] || {weight:85, bodyFat:45, waist:"-", date:key};
+
+  const summary = useMemo(() => {
+    const leanMass = latestCheckin.weight * (1 - (latestCheckin.bodyFat || 28) / 100);
+    const fatMass = latestCheckin.weight - leanMass;
+    const targetLoss = Math.max(0, latestCheckin.weight - 70);
+    return {leanMass, fatMass, targetLoss};
+  }, [latestCheckin]);
+
+  const addCheckin = () => {
+    const weight = parseFloat(weightForm.weight);
+    const bodyFat = parseFloat(weightForm.bodyFat);
+    if(!weight || !bodyFat) return;
+    const entry = {
+      date: key,
+      weight,
+      bodyFat,
+      waist: weightForm.waist || "-",
+      note: weightForm.note || ""
+    };
+    const next = [entry, ...checkins.filter(item => item.date !== key)];
+    setCheckins(next);
+    S.set("veena_checkins", next);
+    postToSheet({
+      sheet: "Checkins",
+      mode: "append",
+      rowKey: key,
+      date: key,
+      name: PROFILE.name,
+      weight,
+      bodyFat,
+      waist: weightForm.waist || "",
+      note: weightForm.note || ""
+    });
+    setWeightForm({...weightForm, note:""});
+  };
+
+  const toggleWorkout = (index) => {
+    const next = {...dayLog, workouts:{...dayLog.workouts, [index]: !dayLog.workouts?.[index]}};
+    saveDayLog(next);
+  };
+
+  const toggleMeal = (group, index) => {
+    const current = !!dayLog.meals?.[group]?.[index];
+    const nextMeals = {
+      ...dayLog.meals,
+      [group]: {
+        ...(dayLog.meals?.[group] || {}),
+        [index]: !current
+      }
+    };
+    const selected = Object.entries(nextMeals).flatMap(([mealType, map]) =>
+      Object.entries(map).flatMap(([idx, active]) => {
+        if(!active) return [];
+        return [MEAL_OPTIONS[mealType][Number(idx)]];
+      })
+    );
+    const next = {
+      ...dayLog,
+      meals: nextMeals,
+      calories: selected.reduce((sum, item) => sum + item.calories, 0),
+      protein: selected.reduce((sum, item) => sum + item.protein, 0),
+      carbs: dayLog.carbs,
+      fat: dayLog.fat
+    };
+    saveDayLog(next);
+  };
+
+  const updateNumber = (field, value) => {
+    const next = {...dayLog, [field]: Number(value) || 0};
+    saveDayLog(next);
+  };
+
+  const toggleSupplement = (name) => {
+    const next = {
+      ...dayLog,
+      supplements: {...dayLog.supplements, [name]: !dayLog.supplements?.[name]}
+    };
+    saveDayLog(next);
+  };
+
+  const toggleWeekCheck = (week, field) => {
+    const next = {
+      ...weekChecks,
+      [week]: {
+        ...(weekChecks[week] || {}),
+        [field]: !weekChecks[week]?.[field]
+      }
+    };
+    setWeekChecks(next);
+    S.set("veena_week_checks", next);
+    const values = next[week] || {};
+    postToSheet({
+      sheet: "Weekly Reviews",
+      mode: "upsert",
+      rowKey: "week-" + week,
+      name: PROFILE.name,
+      week,
+      weight: values.weight ? "Yes" : "No",
+      workouts: values.workouts ? "Yes" : "No",
+      protein: values.protein ? "Yes" : "No",
+      sleep: values.sleep ? "Yes" : "No"
+    });
+  };
+
+  const tabs = [
+    {id:"dashboard", label:"Home", icon:"HOME"},
+    {id:"nutrition", label:"Diet", icon:"DIET"},
+    {id:"training", label:"Train", icon:"GYM"},
+    {id:"tracker", label:"Track", icon:"LOG"},
+    {id:"plan", label:"Plan", icon:"PRO"}
+  ];
+
+  const icons = {HOME:"🏠", DIET:"🍛", GYM:"🏋️", LOG:"📈", PRO:"⚡"};
+
+  return (
+    <div style={{paddingBottom:84}}>
+      <div style={{position:"sticky", top:0, zIndex:40, backdropFilter:"blur(14px)", background:"rgba(9,16,29,.82)", borderBottom:"1px solid #1c2940"}}>
+        <div style={{padding:"16px 16px 14px"}}>
+          <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12}}>
+            <div>
+              <Badge>Recomposition Protocol</Badge>
+              <div style={{fontSize:26, fontWeight:900, marginTop:10, lineHeight:1.04}}>{PROFILE.name}</div>
+              <div style={{fontSize:12, color:"var(--muted)", marginTop:6}}>
+                {PROFILE.goal} • {PROFILE.cuisine} • night training
+              </div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1}}>Target</div>
+              <div style={{fontSize:24, fontWeight:900, color:"var(--orange)"}}>{PROFILE.targetBodyFat}%</div>
+              <div style={{fontSize:11, color:"var(--muted)"}}>Body Fat</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{padding:"14px 14px 0"}}>
+        {tab === "dashboard" && (
+          <>
+            <Card style={{marginBottom:12, overflow:"hidden", position:"relative"}}>
+              <div style={{position:"absolute", right:-20, top:-20, width:120, height:120, borderRadius:"50%", background:"rgba(46,211,198,.12)"}}/>
+              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, position:"relative"}}>
+                <div>
+                  <div style={{fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1}}>Current</div>
+                  <div style={{fontSize:32, fontWeight:900, marginTop:4}}>{latestCheckin.weight} kg</div>
+                  <div style={{fontSize:13, color:"var(--muted)"}}>{latestCheckin.bodyFat}% body fat</div>
+                </div>
+                <div>
+                  <div style={{fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1}}>Projected Finish</div>
+                  <div style={{fontSize:32, fontWeight:900, color:"var(--lime)", marginTop:4}}>{PROFILE.targetWeight}</div>
+                  <div style={{fontSize:13, color:"var(--muted)"}}>{PROFILE.timeline}</div>
+                </div>
+              </div>
+              <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:10, marginTop:16}}>
+                <div style={{padding:10, background:"#0f1728", borderRadius:14, border:"1px solid #1f2d45"}}>
+                  <div style={{fontSize:11, color:"var(--muted)"}}>Lean Mass</div>
+                  <div style={{fontWeight:800, marginTop:5}}>{summary.leanMass.toFixed(1)} kg</div>
+                </div>
+                <div style={{padding:10, background:"#0f1728", borderRadius:14, border:"1px solid #1f2d45"}}>
+                  <div style={{fontSize:11, color:"var(--muted)"}}>Fat Mass</div>
+                  <div style={{fontWeight:800, marginTop:5}}>{summary.fatMass.toFixed(1)} kg</div>
+                </div>
+                <div style={{padding:10, background:"#0f1728", borderRadius:14, border:"1px solid #1f2d45"}}>
+                  <div style={{fontSize:11, color:"var(--muted)"}}>To Lose</div>
+                  <div style={{fontWeight:800, marginTop:5}}>{summary.targetLoss.toFixed(1)} kg</div>
+                </div>
+              </div>
+            </Card>
+
+            <Card style={{marginBottom:12}}>
+              <div style={{fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:12}}>Today's Targets</div>
+              <div style={{display:"flex", justifyContent:"space-around", gap:4}}>
+                <Ring label="Calories" value={dayLog.calories || 0} max={TARGETS.calories} color="var(--orange)" unit="kcal"/>
+                <Ring label="Protein" value={dayLog.protein || 0} max={TARGETS.protein} color="var(--teal)" unit="g"/>
+                <Ring label="Water" value={dayLog.water || 0} max={TARGETS.water} color="#8aa4ff" unit="L"/>
+                <Ring label="Steps" value={dayLog.steps || 0} max={TARGETS.steps} color="var(--lime)" unit=""/>
+              </div>
+              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginTop:16}}>
+                <MetricInput label="Water (L)" value={dayLog.water || 0} onChange={(v) => updateNumber("water", v)} step="0.25"/>
+                <MetricInput label="Steps" value={dayLog.steps || 0} onChange={(v) => updateNumber("steps", v)} step="500"/>
+                <MetricInput label="Carbs (g)" value={dayLog.carbs || 0} onChange={(v) => updateNumber("carbs", v)} step="10"/>
+                <MetricInput label="Fat (g)" value={dayLog.fat || 0} onChange={(v) => updateNumber("fat", v)} step="5"/>
+              </div>
+              <div style={{display:"flex", gap:10, alignItems:"center", marginTop:14}}>
+                <button
+                  onClick={syncDailyLog}
+                  style={{
+                    border:"none",
+                    borderRadius:12,
+                    padding:"12px 14px",
+                    background:syncState === "success" ? "linear-gradient(90deg, #7fd857, #b5ef78)" : "linear-gradient(90deg, var(--teal), #7ee6dd)",
+                    color:"#09101d",
+                    fontWeight:900,
+                    cursor:"pointer"
+                  }}
+                >
+                  {syncState === "syncing" ? "Syncing..." : "Sync Today's Log"}
+                </button>
+                <div style={{fontSize:12, color:syncState === "error" ? "var(--red)" : "var(--muted)"}}>
+                  {syncMessage || "Edits save locally. Tap once when the day is ready."}
+                </div>
+              </div>
+            </Card>
+
+            <Card style={{marginBottom:12}}>
+              <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12}}>
+                <div>
+                  <div style={{fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1}}>Performance Rules</div>
+                  <div style={{fontSize:20, fontWeight:800, marginTop:4}}>What matters most</div>
+                </div>
+                <Badge color="var(--teal)">5 non-negotiables</Badge>
+              </div>
+              <div style={{display:"grid", gap:8}}>
+                {SUCCESS_RULES.map((rule, index) => (
+                  <div key={rule} style={{display:"flex", alignItems:"center", gap:10, padding:10, borderRadius:12, background:"#0f1728", border:"1px solid #1f2d45"}}>
+                    <div style={{width:26, height:26, borderRadius:8, background:"#1f304c", display:"flex", alignItems:"center", justifyContent:"center", color:"var(--gold)", fontWeight:800}}>{index + 1}</div>
+                    <div style={{fontSize:14}}>{rule}</div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card>
+              <div style={{fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1}}>Coach Note</div>
+              <textarea
+                value={note}
+                onChange={(e) => saveNote(e.target.value)}
+                placeholder="Log energy, soreness, sleep, or appetite for today..."
+                style={{
+                  width:"100%",
+                  marginTop:12,
+                  minHeight:120,
+                  borderRadius:14,
+                  border:"1px solid #273856",
+                  background:"#0f1728",
+                  color:"var(--text)",
+                  padding:12,
+                  resize:"vertical",
+                  outline:"none"
+                }}
+              />
+            </Card>
+          </>
+        )}
+
+        {tab === "nutrition" && (
+          <>
+            <Card style={{marginBottom:12}}>
+              <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12}}>
+                <div>
+                  <div style={{fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1}}>Calorie Deficit</div>
+                  <div style={{fontSize:24, fontWeight:900, color:"var(--orange)"}}>{TARGETS.calories} kcal / day</div>
+                </div>
+                <div style={{textAlign:"right", fontSize:12, color:"var(--muted)"}}>
+                  Maintenance
+                  <div style={{fontSize:20, color:"var(--text)", fontWeight:800}}>2000-2150 kcal</div>
+                </div>
+              </div>
+              <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10}}>
+                <MacroCard label="Protein" value={`${TARGETS.protein} g`} accent="var(--teal)"/>
+                <MacroCard label="Carbs" value={`${TARGETS.carbs} g`} accent="var(--gold)"/>
+                <MacroCard label="Fat" value={`${TARGETS.fat} g`} accent="#8aa4ff"/>
+              </div>
+              <div style={{marginTop:12, fontSize:13, color:"var(--muted)"}}>
+                Aim to spread protein across all 3 meals and use a snack or whey when needed.
+              </div>
+            </Card>
+
+            {Object.entries(MEAL_OPTIONS).map(([mealType, items]) => (
+              <Card key={mealType} style={{marginBottom:12}}>
+                <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12}}>
+                  <div style={{fontSize:20, fontWeight:800, textTransform:"capitalize"}}>{mealType}</div>
+                  <Badge color={mealType === "breakfast" ? "var(--orange)" : mealType === "lunch" ? "var(--teal)" : "var(--gold)"}>
+                    {mealType === "breakfast" ? "Protein start" : mealType === "lunch" ? "Kerala style" : "Post workout"}
+                  </Badge>
+                </div>
+                <div style={{display:"grid", gap:10}}>
+                  {items.map((item, index) => {
+                    const active = !!dayLog.meals?.[mealType]?.[index];
+                    return (
+                      <button
+                        key={item.name}
+                        onClick={() => toggleMeal(mealType, index)}
+                        style={{
+                          textAlign:"left",
+                          borderRadius:14,
+                          border:"1px solid " + (active ? "#3b5f92" : "#22324d"),
+                          padding:12,
+                          background:active ? "rgba(46,211,198,.12)" : "#0f1728",
+                          color:"var(--text)",
+                          cursor:"pointer"
+                        }}
+                      >
+                        <div style={{display:"flex", justifyContent:"space-between", gap:12}}>
+                          <div style={{fontSize:14, lineHeight:1.45}}>{item.name}</div>
+                          <div style={{textAlign:"right", whiteSpace:"nowrap"}}>
+                            <div style={{fontWeight:800, color:"var(--teal)"}}>{item.protein} g</div>
+                            <div style={{fontSize:12, color:"var(--muted)"}}>{item.calories} kcal</div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Card>
+            ))}
+
+            <Card>
+              <div style={{fontSize:20, fontWeight:800, marginBottom:12}}>Weekly eating structure</div>
+              <div style={{display:"grid", gap:8}}>
+                {WEEKLY_MEALS.map((row) => (
+                  <div key={row.day} style={{padding:12, borderRadius:14, background:"#0f1728", border:"1px solid #22324d"}}>
+                    <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8}}>
+                      <div style={{fontWeight:800}}>{row.day}</div>
+                      <div style={{fontSize:11, color:"var(--muted)"}}>Kerala rotation</div>
+                    </div>
+                    <div style={{fontSize:13, color:"var(--muted)", lineHeight:1.6}}>
+                      Breakfast: <span style={{color:"var(--text)"}}>{row.breakfast}</span><br/>
+                      Lunch: <span style={{color:"var(--text)"}}>{row.lunch}</span><br/>
+                      Dinner: <span style={{color:"var(--text)"}}>{row.dinner}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </>
+        )}
+
+        {tab === "training" && (
+          <>
+            <Card style={{marginBottom:12}}>
+              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
+                <div style={{padding:12, borderRadius:14, background:"#0f1728", border:"1px solid #22324d"}}>
+                  <div style={{fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1}}>Split</div>
+                  <div style={{fontWeight:800, fontSize:20, marginTop:6}}>4 lifting + 1 circuit</div>
+                </div>
+                <div style={{padding:12, borderRadius:14, background:"#0f1728", border:"1px solid #22324d"}}>
+                  <div style={{fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1}}>Cardio</div>
+                  <div style={{fontWeight:800, fontSize:20, marginTop:6}}>Walks + finishers</div>
+                </div>
+              </div>
+              <div style={{marginTop:12, fontSize:13, color:"var(--muted)"}}>
+                Daily activity target: 7000-9000 steps and short walks between long sitting blocks.
+              </div>
+            </Card>
+
+            {TRAINING.map((block, index) => {
+              const done = !!dayLog.workouts?.[index];
+              return (
+                <Card key={block.day} style={{marginBottom:12, border:"1px solid " + block.color + "33"}}>
+                  <div style={{display:"flex", justifyContent:"space-between", gap:10}}>
+                    <div>
+                      <Badge color={block.color}>{block.day}</Badge>
+                      <div style={{fontSize:22, fontWeight:900, marginTop:10}}>{block.title}</div>
+                      <div style={{fontSize:13, color:"var(--muted)", marginTop:4}}>{block.focus}</div>
+                    </div>
+                    <button
+                      onClick={() => toggleWorkout(index)}
+                      style={{
+                        alignSelf:"flex-start",
+                        border:"1px solid " + (done ? block.color : "#334867"),
+                        background:done ? block.color + "22" : "#0f1728",
+                        color:done ? block.color : "var(--muted)",
+                        borderRadius:12,
+                        padding:"10px 12px",
+                        cursor:"pointer",
+                        fontWeight:700
+                      }}
+                    >
+                      {done ? "Completed" : "Mark done"}
+                    </button>
+                  </div>
+                  <div style={{display:"grid", gap:8, marginTop:14}}>
+                    {block.exercises.map((exercise) => (
+                      <div key={exercise} style={{padding:"10px 12px", background:"#0f1728", border:"1px solid #22324d", borderRadius:12, fontSize:14}}>
+                        {exercise}
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              );
+            })}
+
+            <Card>
+              <div style={{fontSize:20, fontWeight:800, marginBottom:12}}>Supplements</div>
+              <div style={{display:"grid", gap:10}}>
+                {SUPPLEMENTS.map((item) => {
+                  const active = !!dayLog.supplements?.[item.name];
+                  return (
+                    <button
+                      key={item.name}
+                      onClick={() => toggleSupplement(item.name)}
+                      style={{
+                        textAlign:"left",
+                        borderRadius:14,
+                        border:"1px solid " + (active ? "#3e6a59" : "#22324d"),
+                        background:active ? "rgba(155,225,93,.12)" : "#0f1728",
+                        padding:12,
+                        color:"var(--text)",
+                        cursor:"pointer"
+                      }}
+                    >
+                      <div style={{display:"flex", justifyContent:"space-between", gap:12}}>
+                        <div>
+                          <div style={{fontWeight:800}}>{item.name}</div>
+                          <div style={{fontSize:13, color:"var(--muted)", marginTop:4}}>{item.note}</div>
+                        </div>
+                        <div style={{textAlign:"right", whiteSpace:"nowrap"}}>
+                          <div style={{color:"var(--lime)", fontWeight:800}}>{item.dose}</div>
+                          <div style={{fontSize:12, color: active ? "var(--lime)" : "var(--muted)"}}>
+                            {active ? "Taken" : "Pending"}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+          </>
+        )}
+
+        {tab === "tracker" && (
+          <>
+            <Card style={{marginBottom:12}}>
+              <div style={{fontSize:20, fontWeight:800, marginBottom:12}}>Daily check-in</div>
+              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
+                <MetricInput label="Weight (kg)" value={weightForm.weight} onChange={(v) => setWeightForm({...weightForm, weight:v})}/>
+                <MetricInput label="Body fat (%)" value={weightForm.bodyFat} onChange={(v) => setWeightForm({...weightForm, bodyFat:v})}/>
+                <MetricInput label="Waist (cm)" value={weightForm.waist} onChange={(v) => setWeightForm({...weightForm, waist:v})}/>
+                <MetricInput label="Cardio done?" value={dayLog.cycling ? 1 : 0} onChange={(v) => saveDayLog({...dayLog, cycling:Number(v) > 0})}/>
+              </div>
+              <textarea
+                value={weightForm.note}
+                onChange={(e) => setWeightForm({...weightForm, note:e.target.value})}
+                placeholder="Sleep, stress, hunger, or performance notes..."
+                style={{
+                  width:"100%",
+                  marginTop:12,
+                  minHeight:90,
+                  borderRadius:14,
+                  border:"1px solid #273856",
+                  background:"#0f1728",
+                  color:"var(--text)",
+                  padding:12,
+                  resize:"vertical",
+                  outline:"none"
+                }}
+              />
+              <button
+                onClick={addCheckin}
+                style={{
+                  width:"100%",
+                  marginTop:12,
+                  border:"none",
+                  borderRadius:14,
+                  padding:"13px 14px",
+                  background:"linear-gradient(90deg, var(--orange), #ffb067)",
+                  color:"#111",
+                  fontWeight:900,
+                  cursor:"pointer"
+                }}
+              >
+                Save check-in
+              </button>
+            </Card>
+
+            <Card style={{marginBottom:12}}>
+              <div style={{fontSize:20, fontWeight:800, marginBottom:12}}>16-week progress board</div>
+              <div style={{display:"grid", gap:8}}>
+                {WEEKS_16.map((item) => {
+                  const values = weekChecks[item.week] || {};
+                  return (
+                    <div key={item.week} style={{padding:12, borderRadius:14, background:"#0f1728", border:"1px solid #22324d"}}>
+                      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10}}>
+                        <div>
+                          <div style={{fontWeight:800}}>Week {item.week}</div>
+                          <div style={{fontSize:12, color:"var(--muted)"}}>Target scale weight: {item.targetWeight} kg</div>
+                        </div>
+                        <Badge color="var(--gold)">Review</Badge>
+                      </div>
+                      <div style={{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8}}>
+                        {[
+                          ["weight","Weight"],
+                          ["workouts","Gym"],
+                          ["protein","Protein"],
+                          ["sleep","Sleep"]
+                        ].map(([field, label]) => (
+                          <button
+                            key={field}
+                            onClick={() => toggleWeekCheck(item.week, field)}
+                            style={{
+                              borderRadius:12,
+                              border:"1px solid " + (values[field] ? "#446a5e" : "#243550"),
+                              background:values[field] ? "rgba(155,225,93,.12)" : "#111a2d",
+                              color:values[field] ? "var(--lime)" : "var(--muted)",
+                              padding:"10px 6px",
+                              cursor:"pointer",
+                              fontSize:12,
+                              fontWeight:700
+                            }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <Card>
+              <div style={{fontSize:20, fontWeight:800, marginBottom:12}}>Recent check-ins</div>
+              <div style={{display:"grid", gap:8}}>
+                {checkins.length === 0 && <div style={{color:"var(--muted)"}}>No entries yet. Save the first check-in above.</div>}
+                {checkins.slice(0, 8).map((entry) => (
+                  <div key={entry.date} style={{padding:12, borderRadius:14, background:"#0f1728", border:"1px solid #22324d"}}>
+                    <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+                      <div style={{fontWeight:800}}>{entry.date}</div>
+                      <div style={{fontSize:12, color:"var(--muted)"}}>Waist: {entry.waist}</div>
+                    </div>
+                    <div style={{display:"flex", gap:12, marginTop:8, fontSize:14}}>
+                      <span><span style={{color:"var(--muted)"}}>Weight:</span> {entry.weight} kg</span>
+                      <span><span style={{color:"var(--muted)"}}>BF:</span> {entry.bodyFat}%</span>
+                    </div>
+                    {entry.note && <div style={{fontSize:13, color:"var(--muted)", marginTop:8}}>{entry.note}</div>}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </>
+        )}
+
+        {tab === "plan" && (
+          <>
+            <Card style={{marginBottom:12}}>
+              <div style={{fontSize:20, fontWeight:800, marginBottom:12}}>Transformation map</div>
+              <div style={{display:"grid", gap:10}}>
+                <PlanRow label="Start" value="85 kg @ 45% body fat"/>
+                <PlanRow label="Target" value="69-72 kg @ 32% body fat"/>
+                <PlanRow label="Fat loss needed" value="13-16 kg"/>
+                <PlanRow label="Safe pace" value="0.5-0.7 kg per week"/>
+                <PlanRow label="Expected phase 1" value="6-8 kg fat loss in 3 months"/>
+                <PlanRow label="Activity style" value="Steps, incline walks, Stairmaster, bike"/>
+              </div>
+            </Card>
+
+            <Card style={{marginBottom:12}}>
+              <div style={{fontSize:20, fontWeight:800, marginBottom:12}}>Expected progress</div>
+              <div style={{display:"grid", gap:10}}>
+                {PROGRESS_GOALS.map((item) => (
+                  <div key={item.phase} style={{padding:12, borderRadius:14, background:"#0f1728", border:"1px solid #22324d"}}>
+                    <div style={{fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1}}>{item.phase}</div>
+                    <div style={{fontSize:20, fontWeight:800, marginTop:6}}>{item.weight}</div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card>
+              <div style={{fontSize:20, fontWeight:800, marginBottom:12}}>Execution notes</div>
+              <div style={{display:"grid", gap:10, fontSize:14, color:"var(--muted)"}}>
+                <div style={{padding:12, borderRadius:14, background:"#0f1728", border:"1px solid #22324d"}}>
+                  Shoulder rehab comes first on upper body days. Keep ranges pain-free and avoid forcing overhead patterns.
+                </div>
+                <div style={{padding:12, borderRadius:14, background:"#0f1728", border:"1px solid #22324d"}}>
+                  Current sleep is 5-6 hours, so moving closer to 7 hours will improve recovery, hunger control, and training quality.
+                </div>
+                <div style={{padding:12, borderRadius:14, background:"#0f1728", border:"1px solid #22324d"}}>
+                  Weekly tracking should include body weight, waist, hips, and progress photos so scale changes are not the only signal.
+                </div>
+              </div>
+            </Card>
+          </>
+        )}
+      </div>
+
+      <div style={{position:"fixed", left:"50%", transform:"translateX(-50%)", bottom:0, width:"100%", maxWidth:480, background:"rgba(8,13,24,.95)", backdropFilter:"blur(16px)", borderTop:"1px solid #1c2940", display:"flex", zIndex:50}}>
+        {tabs.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setTab(item.id)}
+            style={{
+              flex:1,
+              border:"none",
+              background:"transparent",
+              color:tab === item.id ? "var(--orange)" : "#64799f",
+              padding:"10px 4px 12px",
+              cursor:"pointer"
+            }}
+          >
+            <div style={{fontSize:18}}>{icons[item.icon]}</div>
+            <div style={{fontSize:10, textTransform:"uppercase", letterSpacing:1, marginTop:3, fontWeight:700}}>{item.label}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MetricInput({label, value, onChange, step="1"}){
+  return (
+    <label style={{display:"block"}}>
+      <div style={{fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:6}}>{label}</div>
+      <input
+        value={value}
+        step={step}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          width:"100%",
+          borderRadius:12,
+          border:"1px solid #273856",
+          background:"#0f1728",
+          color:"var(--text)",
+          padding:"12px 12px",
+          outline:"none"
+        }}
+      />
+    </label>
+  );
+}
+
+function MacroCard({label, value, accent}){
+  return (
+    <div style={{padding:12, borderRadius:14, background:"#0f1728", border:"1px solid #22324d"}}>
+      <div style={{fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1}}>{label}</div>
+      <div style={{fontSize:24, fontWeight:900, color:accent, marginTop:6}}>{value}</div>
+    </div>
+  );
+}
+
+function PlanRow({label, value}){
+  return (
+    <div style={{display:"flex", justifyContent:"space-between", gap:12, padding:12, borderRadius:14, background:"#0f1728", border:"1px solid #22324d"}}>
+      <div style={{color:"var(--muted)"}}>{label}</div>
+      <div style={{fontWeight:800, textAlign:"right"}}>{value}</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
